@@ -7,11 +7,18 @@ __directory__ = os.path.dirname(__file__)
 
 sys.path.insert(0, __directory__)
 
-# make sure ctypes sees libusb-1.0.dll
+# check for libusb1
 _cwd = os.getcwd()
 try:
+    # make sure ctypes sees libusb-1.0.dll
     os.chdir(__directory__)
-    from . import libusb1
-    from . import usb1
+
+    try:
+        import libusb1
+        import usb1
+    except import:
+        from . import libusb1
+        from . import usb1
+
 finally:
     os.chdir(_cwd)

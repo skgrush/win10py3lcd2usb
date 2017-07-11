@@ -1,4 +1,4 @@
-#
+#!/usr/bin/env python3
 
 import datetime
 import time
@@ -7,6 +7,9 @@ try:
     import lcd2usb
 except ImportError:
     from lib import lcd2usb
+
+
+import atexitLCD
 
 
 def basic(lcd: lcd2usb.LCD):
@@ -20,7 +23,7 @@ def basic(lcd: lcd2usb.LCD):
     lcd.fill_center('win10py3lcd2usb', 3)
 
 
-def hardware_stats(lcd: lcd2usb.LCD):
+def openhardwaremonitor(lcd: lcd2usb.LCD, update_interval=1):
 
     from wmi_interfaces.OHM import OHM, get_process
 
@@ -56,7 +59,7 @@ def hardware_stats(lcd: lcd2usb.LCD):
             if gpu:
                 gpu_load = gpu.getSensor('Load', multiple=True).get(0, None)
                 gpu_temp = gpu.getSensor('Temperature')
-                msgs = ('GPU Load: {:.2%}'.format(100*gpu_load.Value) \
+                msgs = ('GPU Load: {:.2%}'.format(gpu_load.Value) \
                         if gpu_load else 'GPU Load not detected',
                         'GPU Temp: {:.2f} C'.format(gpu_temp.Value)
                         if gpu_temp else 'GPU Temp not detected')
@@ -65,11 +68,16 @@ def hardware_stats(lcd: lcd2usb.LCD):
 
     while(1):
         looper()
-        time.sleep(1)
+        time.sleep(update_interval)
 
 
 if __name__ == '__main__':
 
-    lcd = lcd2usb.LCD()
-
-    hardware_stats(lcd)
+    try:
+        openhardwaremonitor(lcd2usb.LCD(), 0.5)
+    except KeyboardInterrupt:
+        pass
+    except:
+        import traceback
+        traceback.print_exc()
+        input("Hit enter to exit:")

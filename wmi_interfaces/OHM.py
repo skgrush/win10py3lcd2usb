@@ -7,6 +7,7 @@ import wmi
 
 EXE_NAME = "OpenHardwareMonitor.exe"
 NAMESPACE = "root/OpenHardwareMonitor"
+
 KNOWN_HW_TYPES = (
     'Mainboard',
     'SuperIO',
