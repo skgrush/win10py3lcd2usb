@@ -44,6 +44,7 @@ SMILE_SYMBOL = bytearray([0x00, 0x0a, 0x0a, 0x00, 0x11, 0x0e, 0x00, 0x00])
 TYPE_VENDOR = libusb1.LIBUSB_TYPE_VENDOR
 REQUEST_GET_TYPE = TYPE_VENDOR | libusb1.LIBUSB_RECIPIENT_DEVICE
 
+
 class LCD2USBNotFound(Exception):
     '''LCD2USB device not found'''
 
@@ -82,6 +83,7 @@ class LCD(object):
 
     @classmethod
     def find_or_die(cls):
+        '''Find and return an LCD or sys.exit'''
         try:
             return cls()
         except LCD2USBNotFound as exc:
@@ -248,7 +250,7 @@ class LCD(object):
         '''send an usb control message'''
         try:
             self.device.controlWrite(TYPE_VENDOR, request, value,
-                           index, b'', 1000)
+                                     index, b'', 1000)
         except libusb1.USBError:
             print('USB request failed!')
             return -1
@@ -284,12 +286,12 @@ class LCD(object):
 
         self.command(address.get(row, 0x80) + column)
 
-    def define_char(self, ascii, data):
+    def define_char(self, ascii_, data):
         '''recording custom symbol to the HD44780 memory'''
 
         # try http://www.quinapalus.com/hd44780udg.html to design your chars
 
-        base_address = 0x40 | (ascii << 3)
+        base_address = 0x40 | (ascii_ << 3)
         self.command(base_address)
         self.write(data)
 
@@ -309,6 +311,7 @@ class LCD(object):
         self.write_char(0, 19, 0)
 
     def fill(self, message, row_index=0, align='left'):
+        '''Fill a row with a message with a given alignment.'''
         if not isinstance(message, str):
             message = str(message)
         size = 20
@@ -326,9 +329,11 @@ class LCD(object):
         self.write(fillup, 0, row_index)
 
     def fill_center(self, message, row_index=0):
+        '''Fill a row with a message, center-aligned.'''
         self.fill(message, row_index, align='center')
 
     def fill_right(self, message, row_index=0):
+        '''Fill a row with a message, right-aligned.'''
         self.fill(message, row_index, align='right')
 
 
