@@ -80,6 +80,7 @@ def get_process(c: wmi.WMI = wmi.WMI()):
     else:
         return None
 
+
 def _first_of(typ):
     def _inner(self):
         idxs = self.hw_indices[typ]
@@ -107,20 +108,19 @@ class OHM:
         'find_classes': False,
         'debug': False
     }
-    hw_indices = dict( (typ, ()) for typ in KNOWN_HW_TYPES )
+    hw_indices = dict((typ, ()) for typ in KNOWN_HW_TYPES)
 
     hardware = ()
     sensors = ()
 
     def __init__(self, **kwargs):
         self.connection_options = dict(
-            [key, kwargs.get(key, self.connection_options[key])] \
-                for key in self.connection_options
+            [key, kwargs.get(key, self.connection_options[key])]
+            for key in self.connection_options
         )
 
         self._init_wohm()
         self._init_hardware()
-
 
     def _init_wohm(self):
         self.wohm = wmi.WMI(namespace=NAMESPACE, **self.connection_options)
@@ -298,7 +298,7 @@ class Hardware(tuple):
         return "<{qualname} HardwareType={self[1]} Name={self[5]!r}" \
                " InstanceId={self[3]} Identifier={self[4]!r}" \
                " sensors={L}>".format(self=self, L=len(self[6]),
-                    qualname=self.__class__.__qualname__)
+                                      qualname=self.__class__.__qualname__)
 
     def getSensor(self, sensortype, multiple=False):
         S = self[7].get(sensortype, {})
