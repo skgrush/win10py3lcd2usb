@@ -1,4 +1,0 @@
-[pycodestyle]
-
-ignore = W,E,R,C
-match = *
