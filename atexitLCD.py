@@ -1,16 +1,19 @@
+"""Import this to add an atexit listener that prints some info."""
 
 from time import ctime as _ctime
 
+
 def _get_lcd2usb():
+    """Ideally import lcd2usb."""
     try:
         import lcd2usb
     except ImportError:
         try:
             from lib import lcd2usb
-        except:
+        except ImportError:
             try:
                 from .lib import lcd2usb
-            except:
+            except ImportError:
                 return None
     return lcd2usb
 

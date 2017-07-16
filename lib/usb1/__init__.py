@@ -45,7 +45,7 @@ All LIBUSB_ERROR_* constants are available in this module as exception classes,
 subclassing USBError.
 """
 
-
+from __future__ import division, absolute_import
 from ctypes import byref, c_int, sizeof, POINTER, \
     cast, c_uint8, c_uint16, c_ubyte, c_void_p, cdll, addressof, \
     c_char
@@ -85,7 +85,7 @@ STATUS_TO_EXCEPTION_DICT = {}
 def __bindConstants():
     global_dict = globals()
     PREFIX = 'LIBUSB_'
-    for name, value in list(libusb1.__dict__.items()):
+    for name, value in libusb1.__dict__.items():
         if name.startswith(PREFIX):
             name = name[len(PREFIX):]
             # Gah.
@@ -95,7 +95,7 @@ def __bindConstants():
             global_dict[name] = value
             __all__.append(name)
     # Finer-grained exceptions.
-    for name, value in list(libusb1.libusb_error.forward_dict.items()):
+    for name, value in libusb1.libusb_error.forward_dict.items():
         if value:
             assert name.startswith(PREFIX + 'ERROR_'), name
             if name == 'LIBUSB_ERROR_IO':
@@ -206,7 +206,7 @@ else:
             return ord(value)
 
         def __setitem__(self, key, value):
-            if isinstance(value, int):
+            if isinstance(value, (int, long)):
                 value = chr(value)
             else:
                 value = ''.join(chr(x) for x in value)
@@ -270,7 +270,7 @@ def create_binary_buffer(init_or_size):
     # - int or long is a length
     # - str or unicode is an initialiser
     # Testing the latter confuses 2to3, so test the former.
-    if isinstance(init_or_size, int):
+    if isinstance(init_or_size, (int, long)):
         init_or_size = bytearray(init_or_size)
     return create_initialised_buffer(init_or_size)
 
@@ -447,7 +447,7 @@ class USBTransfer(object):
             raise ValueError('Cannot alter a submitted transfer')
         if self.__doomed:
             raise DoomedTransferError('Cannot reuse a doomed transfer')
-        if isinstance(buffer_or_len, int):
+        if isinstance(buffer_or_len, (int, long)):
             length = buffer_or_len
             # pylint: disable=undefined-variable
             string_buffer, transfer_py_buffer = create_binary_buffer(
@@ -1370,7 +1370,7 @@ class USBDeviceHandle(object):
         langid_list = cast(descriptor_string, POINTER(c_uint16))
         return [
             libusb1.libusb_le16_to_cpu(langid_list[offset])
-            for offset in range(1, cast(descriptor_string, POINTER(c_ubyte))[0] // 2)
+            for offset in xrange(1, cast(descriptor_string, POINTER(c_ubyte))[0] // 2)
         ]
 
     def getStringDescriptor(self, descriptor, lang_id, errors='strict'):
@@ -1623,7 +1623,7 @@ class USBConfiguration(object):
         """
         context = self.__context
         interface_list = self.__config.interface
-        for interface_num in range(self.getNumInterfaces()):
+        for interface_num in xrange(self.getNumInterfaces()):
             yield USBInterface(context, interface_list[interface_num])
 
     # BBB
@@ -1662,7 +1662,7 @@ class USBInterface(object):
         """
         context = self.__context
         alt_setting_list = self.__interface.altsetting
-        for alt_setting_num in range(self.getNumSettings()):
+        for alt_setting_num in xrange(self.getNumSettings()):
             yield USBInterfaceSetting(
                 context, alt_setting_list[alt_setting_num])
 
@@ -1735,7 +1735,7 @@ class USBInterfaceSetting(object):
         """
         context = self.__context
         endpoint_list = self.__alt_setting.endpoint
-        for endpoint_num in range(self.getNumEndpoints()):
+        for endpoint_num in xrange(self.getNumEndpoints()):
             yield USBEndpoint(context, endpoint_list[endpoint_num])
 
     # BBB
@@ -1810,7 +1810,7 @@ class USBDevice(object):
             self.__configuration_descriptor_list = descriptor_list = []
             append = descriptor_list.append
             device_p = self.device_p
-            for configuration_id in range(
+            for configuration_id in xrange(
                     self.device_descriptor.bNumConfigurations):
                 config = libusb1.libusb_config_descriptor_p()
                 result = libusb1.libusb_get_config_descriptor(
@@ -2194,7 +2194,7 @@ class USBContext(object):
     def _exit(self):
         context_p = self.__context_p
         if context_p:
-            for handle in list(self.__hotplug_callback_dict.keys()):
+            for handle in self.__hotplug_callback_dict.keys():
                 self.hotplugDeregisterCallback(handle)
             pop = self.__close_set.pop
             while True:

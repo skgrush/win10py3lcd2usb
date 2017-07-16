@@ -6,7 +6,6 @@
 
 import struct
 
-import libusb1
 import usb1
 
 
@@ -41,8 +40,8 @@ LCD_GET_RESERVED1 = LCD_GET | (3 << 3)
 SMILE_SYMBOL = bytearray([0x00, 0x0a, 0x0a, 0x00, 0x11, 0x0e, 0x00, 0x00])
 
 
-TYPE_VENDOR = libusb1.LIBUSB_TYPE_VENDOR
-REQUEST_GET_TYPE = TYPE_VENDOR | libusb1.LIBUSB_RECIPIENT_DEVICE
+TYPE_VENDOR = usb1.libusb1.LIBUSB_TYPE_VENDOR
+REQUEST_GET_TYPE = TYPE_VENDOR | usb1.libusb1.LIBUSB_RECIPIENT_DEVICE
 
 
 class LCD2USBNotFound(Exception):
@@ -118,7 +117,7 @@ class LCD(object):
         try:
             buf = self.device.controlRead(REQUEST_GET_TYPE, LCD_ECHO, value,
                                           0, 2, 1000)
-        except libusb1.USBError:
+        except usb1.libusb1.USBError:
             print('USB request failed!')
             return -1
         ret, = struct.unpack('H', buf)  # unsigned short, size 2
@@ -131,7 +130,7 @@ class LCD(object):
         try:
             buf = self.device.controlRead(REQUEST_GET_TYPE, command, 0, 0, 2,
                                           1000)
-        except libusb1.USBError:
+        except usb1.libusb1.USBError:
             print('USB request failed!')
             return -1
 
@@ -172,7 +171,7 @@ class LCD(object):
 
         try:
             self.device.controlWrite(TYPE_VENDOR, command, value, 0, '', 1000)
-        except libusb1.USBError:
+        except usb1.libusb1.USBError:
             print('USB request failed!')
         return 0
 
@@ -251,7 +250,7 @@ class LCD(object):
         try:
             self.device.controlWrite(TYPE_VENDOR, request, value,
                                      index, b'', 1000)
-        except libusb1.USBError:
+        except usb1.libusb1.USBError:
             print('USB request failed!')
             return -1
         return 0

@@ -21,7 +21,7 @@ import itertools
 import select
 import threading
 import usb1
-from . import libusb1
+import libusb1
 from ctypes import pointer
 
 buff_len = 1024

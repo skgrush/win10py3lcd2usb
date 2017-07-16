@@ -1,9 +1,11 @@
+"""OpenHardwareMonitor interface through WMI."""
 
-import enum
 from operator import itemgetter
 import warnings
 
 import wmi
+
+from wmi import _wmi_object  # noqa
 
 EXE_NAME = "OpenHardwareMonitor.exe"
 NAMESPACE = "root/OpenHardwareMonitor"
@@ -46,39 +48,64 @@ KNOWN_SENSOR_TYPE_UNITS = (
 
 
 class NotFoundException(RuntimeError):
+    """A Hardware or Sensor was not found."""
+
     def __init__(self, typ, selectors):
+        """Construct from a type not found by selectors."""
         self.type, self.selectors = typ, selectors
         self.message = "Failed to find {.__name__} with selectors {}".format(
-                       typ, selectors)
+            typ, selectors)
         super().__init__(self.message)
 
 
 class OHMWarning(RuntimeWarning, UserWarning):
+    """Base class for warnings raised in the module."""
+
     pass
 
 
 class MultipleFoundWarning(OHMWarning):
+    """Too many Hardware or Sensors were found."""
+
     def __init__(self, typ, selectors):
+        """Construct from the type found by selectors."""
         self.type, self.selectors = typ, selectors
         self.message = "Found multiple {.__name__} with selectors {}".format(
-                       typ, selectors)
+            typ, selectors)
         super().__init__(self.message)
 
 
 class WmiAttributeError(RuntimeError):
+    """An error occurred retrieving an attribute from a WMI class."""
+
     def __init__(self, typ, attribute):
+        """Construct from the type and attribute that failed."""
         self.type, self.attribute = typ, attribute
         self.message = "Failed to retrieve {.__name__} attribute(s) {}".format(
-                       typ, attribute)
+            typ, attribute)
         super().__init__(self.message)
 
 
-def get_process(c: wmi.WMI = wmi.WMI()):
-    proclist = c.Win32_Process(name=EXE_NAME)
+def get_process(cwmi: wmi.WMI=wmi.WMI()):
+    """Get and return the process EXE_NAME."""
+    proclist = cwmi.Win32_Process(name=EXE_NAME)
     if proclist:
         return proclist[0]
+
+
+def wait_for_process(cwmi: wmi.WMI=wmi.WMI(), timeout=None):
+    """Wait until the process starts and return it."""
+    watcher = cwmi.watch_for(notification_type="Creation",
+                             wmi_class="Win32_Process",
+                             Name=EXE_NAME)
+
+    if not timeout or not hasattr(wmi, 'x_wmi_timed_out'):
+        return watcher()
     else:
-        return None
+        try:
+            return watcher(timeout)
+        except wmi.x_wmi_timed_out:
+            return None
 
 
 def _first_of(typ):
@@ -86,13 +113,12 @@ def _first_of(typ):
         idxs = self.hw_indices[typ]
         if idxs:
             return self.hardware[idxs[0]]
-        else:
-            return None
 
     return _inner
 
 
 class OHM:
+    """Wrapper of bits of OpenHardwareMonitor's WMI interface."""
 
     wohm = None  # a wmi.WMI instance
     connection_options = {
@@ -114,6 +140,7 @@ class OHM:
     sensors = ()
 
     def __init__(self, **kwargs):
+        """Construct from given connection_options."""
         self.connection_options = dict(
             [key, kwargs.get(key, self.connection_options[key])]
             for key in self.connection_options
@@ -145,18 +172,19 @@ class OHM:
         self.hardware = tuple(hardware)
         self.sensors = tuple(sensors)
 
-    first_Mainboard = property(_first_of('Mainboard'))
-    first_SuperIO = property(_first_of('SuperIO'))
-    first_CPU = property(_first_of('CPU'))
-    first_GpuNvidia = property(_first_of('GpuNvidia'))
-    first_GpuAti = property(_first_of('GpuAti'))
-    first_TBalancer = property(_first_of('Tbalancer'))
-    first_Heatmaster = property(_first_of('Heatmaster'))
-    first_HDD = property(_first_of('HDD'))
-    first_RAM = property(_first_of('RAM'))
+    first_Mainboard = property(_first_of('Mainboard'), doc="Motherboard")
+    first_SuperIO = property(_first_of('SuperIO'), doc="I/O Controller")
+    first_CPU = property(_first_of('CPU'), doc="CPU")
+    first_GpuNvidia = property(_first_of('GpuNvidia'), doc="GPU (Green)")
+    first_GpuAti = property(_first_of('GpuAti'), doc="GPU (Red)")
+    first_TBalancer = property(_first_of('Tbalancer'), doc="Pump controller")
+    first_Heatmaster = property(_first_of('Heatmaster'), doc="??")
+    first_HDD = property(_first_of('HDD'), doc="Storage")
+    first_RAM = property(_first_of('RAM'), doc="Memory")
 
     @property
     def first_Gpu(self):
+        """first_GpuAti[0] | first_Gpu_Nvidia[0]."""
         idxs = self.hw_indices['GpuAti']
         if not idxs:
             idxs = self.hw_indices['GpuNvidia']
@@ -166,6 +194,7 @@ class OHM:
 
 
 class Sensor(tuple):
+    """Wrapper of OHM's WMI Sensor class."""
 
     __slots__ = ()
 
@@ -177,7 +206,7 @@ class Sensor(tuple):
     Name = property(itemgetter(5))
     Parent = property(itemgetter(6))
 
-    def __new__(cls, ohm: OHM, s: wmi._wmi_object):
+    def __new__(cls, ohm: OHM, s: _wmi_object):
         assert hasattr(s, 'SensorType'), "Second argument of ohm.Sensor " \
                                          "constructor should be an " \
                                          "OpenHardwareMonitor wmi Sensor " \
@@ -202,7 +231,7 @@ class Sensor(tuple):
             return Sensor(ohm, s[0])
 
     @classmethod
-    def ofHardware(cls, ohm: OHM, h: wmi._wmi_object) -> 'Sensor iterator':
+    def ofHardware(cls, ohm: OHM, h: _wmi_object) -> 'Sensor iterator':
         for s in ohm.wohm.Sensor(Parent=h.Identifier):
             yield Sensor(ohm, s)
 
@@ -225,12 +254,12 @@ class Sensor(tuple):
     @property
     def units(self):
         return KNOWN_SENSOR_TYPE_UNITS[
-                KNOWN_SENSOR_TYPES.index(self.SensorType)]
+            KNOWN_SENSOR_TYPES.index(self.SensorType)]
 
     def __repr__(self):
         return "<{qualname} SensorType={self[1]} Name={self[5]!r}" \
                " InstanceId={self[3]} Identifier={self[2]!r}>".format(
-                    self=self, qualname=self.__class__.__qualname__
+                   self=self, qualname=self.__class__.__qualname__
                )
 
     def _attr_query(self, *fields):
@@ -241,6 +270,7 @@ class Sensor(tuple):
 
 
 def generateSensorMap(sensors):
+    """Map an iterator of Sensors based on sensor type and index."""
     mapp = {}
     for S in sensors:
         if S.SensorType not in mapp:
@@ -252,6 +282,7 @@ def generateSensorMap(sensors):
 
 
 class Hardware(tuple):
+    """Wrapper of OHM's WMI Hardware class."""
 
     __slots__ = ()
 
@@ -301,6 +332,7 @@ class Hardware(tuple):
                                       qualname=self.__class__.__qualname__)
 
     def getSensor(self, sensortype, multiple=False):
+        """Attempt to retrieve sensor(s) of a given type for the hardware."""
         S = self[7].get(sensortype, {})
         if multiple:
             return S and S.copy()
