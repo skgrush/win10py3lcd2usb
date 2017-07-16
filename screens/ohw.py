@@ -9,25 +9,28 @@ import lcd2usb
 logger = logging.getLogger("ohw")
 
 
-def getOrWait(lcd: lcd2usb.LCD, timeout: int):
+def getOrWait(lcd: lcd2usb.LCD, timeout: int) -> OHM:
     """Check if OpenHardwareMonitor is running and wait if necessary."""
-    if not get_process():
-        logger.warning("OpenHardwareMonitor not running")
+    while True:
+        if not get_process():
+            logger.warning("OpenHardwareMonitor not running")
 
-        lcd.clear()
-        lcd.fill_center("Waiting for OHM...")
-        wait_for_process()
-        logger.info("Found OpenHardwareMonitor")
+            lcd.clear()
+            lcd.fill_center("Waiting for OHM...")
+            ret = wait_for_process(timeout)
+            if ret:
+                logger.info("Found OpenHardwareMonitor")
+            else:
+                continue
+
+        return OHM()
 
 
 def screen(lcd: lcd2usb.LCD, update_interval=1):
     """Output information from OpenHardwareMonitor."""
-    getOrWait(lcd, 60)
-    ohm = OHM()
-
     def looper():
         """Inner loop."""
-        getOrWait(lcd, 60)
+        ohm = getOrWait(lcd, 60)
 
         cpu = ohm.first_CPU
         gpu = ohm.first_Gpu
