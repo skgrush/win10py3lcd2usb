@@ -7,12 +7,18 @@ import sys
 import logging
 import logging.config
 
+from pathlib import Path
 
-__directory__ = os.path.dirname(__file__)
+__directory__ = Path(os.path.dirname(__file__))
+
+_logging_defaults = {
+    'logfilename': (__directory__ / 'log.log').as_posix()
+}
 
 
 def _init_logging():
-    logging.config.fileConfig(os.path.join(__directory__, "setup.cfg"))
+    logging.config.fileConfig(fname=(__directory__ / "setup.cfg"),
+                              defaults=_logging_defaults)
     return logging.getLogger()
 
 
@@ -22,7 +28,7 @@ def _init_usb1(logger):
     _cwd = os.getcwd()
     try:
         # make sure ctypes sees lib/libusb-1.0.dll
-        os.chdir(os.path.join(__directory__, 'lib/usb1/drivers'))
+        os.chdir(__directory__ / 'lib/usb1/drivers')
         try:
             import usb1
             logger.debug("Imported usb1 externally")
@@ -53,7 +59,7 @@ def _init_lcd(logger):
 def init():
     """Initialize the environment."""
     if __directory__ not in sys.path:
-        sys.path.insert(0, __directory__)
+        sys.path.insert(0, str(__directory__))
     print("sys.path:", sys.path, "\n")
 
     logger = _init_logging()
