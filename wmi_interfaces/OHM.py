@@ -1,11 +1,15 @@
 """OpenHardwareMonitor interface through WMI."""
 
+from collections import OrderedDict
 from operator import itemgetter
 import warnings
 
 import wmi
-
 from wmi import _wmi_object  # noqa
+
+from wmi_interfaces import NotFoundException, MultipleFoundWarning, \
+                           WmiAttributeError, \
+                           WmiNamespaceWrapper, WmiClassWrapper
 
 EXE_NAME = "OpenHardwareMonitor.exe"
 NAMESPACE = "root/OpenHardwareMonitor"
@@ -47,53 +51,15 @@ KNOWN_SENSOR_TYPE_UNITS = (
 )
 
 
-class NotFoundException(RuntimeError):
-    """A Hardware or Sensor was not found."""
-
-    def __init__(self, typ, selectors):
-        """Construct from a type not found by selectors."""
-        self.type, self.selectors = typ, selectors
-        self.message = "Failed to find {.__name__} with selectors {}".format(
-            typ, selectors)
-        super().__init__(self.message)
-
-
-class OHMWarning(RuntimeWarning, UserWarning):
-    """Base class for warnings raised in the module."""
-
-    pass
-
-
-class MultipleFoundWarning(OHMWarning):
-    """Too many Hardware or Sensors were found."""
-
-    def __init__(self, typ, selectors):
-        """Construct from the type found by selectors."""
-        self.type, self.selectors = typ, selectors
-        self.message = "Found multiple {.__name__} with selectors {}".format(
-            typ, selectors)
-        super().__init__(self.message)
-
-
-class WmiAttributeError(RuntimeError):
-    """An error occurred retrieving an attribute from a WMI class."""
-
-    def __init__(self, typ, attribute):
-        """Construct from the type and attribute that failed."""
-        self.type, self.attribute = typ, attribute
-        self.message = "Failed to retrieve {.__name__} attribute(s) {}".format(
-            typ, attribute)
-        super().__init__(self.message)
-
-
-def get_process(cwmi: wmi.WMI=wmi.WMI()):
+def get_process(cwmi: wmi.WMI=wmi.WMI()) -> "WMI().Win32_Process":
     """Get and return the process EXE_NAME."""
     proclist = cwmi.Win32_Process(name=EXE_NAME)
     if proclist:
         return proclist[0]
 
 
-def wait_for_process(cwmi: wmi.WMI=wmi.WMI(), timeout=None):
+def wait_for_process(cwmi: wmi.WMI=wmi.WMI(),
+                     timeout=None) -> "WMI().Win32_Process":
     """Wait until the process starts and return it."""
     watcher = cwmi.watch_for(notification_type="Creation",
                              wmi_class="Win32_Process",
