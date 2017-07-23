@@ -83,7 +83,104 @@ def _first_of(typ):
     return _inner
 
 
-class OHM:
+class Hardware(WmiClassWrapper):
+
+    HardwareType = property(WmiClassWrapper._defStatAttr(0))
+    ParentId = property(WmiClassWrapper._defStatAttr(1))
+    Identifier = property(WmiClassWrapper._defStatAttr(2))
+    Name = property(WmiClassWrapper._defStatAttr(3))
+    InstanceId = property(WmiClassWrapper._defStatAttr(4))
+
+    @property
+    def ParentHardware(self):
+        """Retrieve python Hardware instance referred to by self.ParentId."""
+        return  # TODO
+
+    @classmethod
+    def static_attributes(cls):  # noqa
+        return ('HardwareType', 'Parent', 'Identifier', 'Name', 'InstanceId')
+
+
+class Sensor(WmiClassWrapper):
+
+    SensorType = property(WmiClassWrapper._defStatAttr(0), doc="SensorType"
+                          " [static string]. See KNOWN_SENSOR_TYPES"
+                          " for possible values.")
+    Name = property(WmiClassWrapper._defStatAttr(1), doc="Human-readable Name"
+                    " [static string].")
+    Identifier = property(WmiClassWrapper._defStatAttr(2), doc="Unique"
+                          " path-like identifier [static string]. The OHM docs"
+                          " warn that \"The identifiers are unique per"
+                          " instance, but do not guarantee that the underlying"
+                          " hardware is 100% identical to a previous session\""
+                          ". This shouldn't be a problem during our runtime.")
+    ParentId = property(WmiClassWrapper._defStatAttr(3), doc="Identifier of"
+                        " the parent Hardware instance [static string].")
+    Index = property(WmiClassWrapper._defStatAttr(4), doc="Index of this"
+                     " sensor in its parent's array of this SensorType"
+                     " [static int].")
+
+    Value = property(WmiClassWrapper._defDynAttr('Value'), doc="Value of the"
+                     " sensor [dynamic float].")
+    Min = property(WmiClassWrapper._defDynAttr('Min'), doc="Lowest value read"
+                   " from the sensor during this session [dynamic float]. This"
+                   " may *increase* during our runtime if the OHM process is"
+                   " restarted/reset.")
+    Max = property(WmiClassWrapper._defDynAttr('Max'), doc="Highest value read"
+                   " from the sensor during this session [dynamic float]."
+                   " This may *decrease* during our runtime if the OHM process"
+                   " is restarted/reset.")
+
+    @property
+    def ParentHardware(self):
+        """Retrieve python Hardware instance referred to by self.ParentId."""
+        return  # TODO
+
+    @property
+    def Units(self):
+        try:
+            return KNOWN_SENSOR_TYPE_UNITS[
+                    KNOWN_SENSOR_TYPES.index(self.SensorType)]
+        except AttributeError:
+            return '??'
+
+    @classmethod
+    def static_attributes(cls): #noqa
+        return ('SensorType', 'Name', 'Identifier', 'Parent', 'Index')
+
+    @classmethod
+    def dynamic_attributes(cls): #noqa
+        return ('Value', 'Min', 'Max')
+
+
+class OHM(WmiNamespaceWrapper):
+    """Wrapper of bits of OpenHardwareMonitor's WMI interface.
+
+    Subclasses:
+        Hardware, root/OpenHardwareMonitor:Hardware
+        Sensor, root/OpenHardwareMonitor:Sensor
+    """
+
+    @classmethod
+    def _classes(cls):
+        return OrderedDict((
+            ('Hardware', Hardware),
+            ('Sensor', Sensor),
+        ))
+
+    @classmethod
+    def _default_connection_options(cls):
+        return {
+            'namespace': NAMESPACE
+        }
+
+    Hardware = property(WmiNamespaceWrapper._defClassProp('Hardware',
+                                                          Hardware))
+    Sensor = property(WmiNamespaceWrapper._defClassProp('Sensor', Sensor))
+
+
+
+class OHM_old:
     """Wrapper of bits of OpenHardwareMonitor's WMI interface."""
 
     wohm = None  # a wmi.WMI instance
@@ -159,7 +256,7 @@ class OHM:
         return self.hardware[idxs[0]]
 
 
-class Sensor(tuple):
+class Sensor_old(tuple):
     """Wrapper of OHM's WMI Sensor class."""
 
     __slots__ = ()
@@ -247,7 +344,7 @@ def generateSensorMap(sensors):
     return mapp
 
 
-class Hardware(tuple):
+class Hardware_old(tuple):
     """Wrapper of OHM's WMI Hardware class."""
 
     __slots__ = ()
