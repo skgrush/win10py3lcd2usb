@@ -1,4 +1,8 @@
-"""Parser for Intel's CPU power gadget log.
+"""USELESS Parser for Intel's CPU power gadget log.
+
+USELESS:
+    The module is unfinished and USELESS because the Intel (R) Power Gadget log
+    is not written in a way that is readable in realtime.
 
 Log Columns:
     System Time
