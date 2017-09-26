@@ -9,7 +9,7 @@ import logging.config
 
 from pathlib import Path
 
-__directory__ = Path(os.path.dirname(__file__))
+__directory__ = Path(os.path.dirname(os.path.realpath(__file__)))
 
 _logging_defaults = {
     'logfilename': (__directory__ / 'log.log').as_posix()
@@ -34,6 +34,7 @@ def _init_usb1(logger):
             logger.debug("Imported usb1 externally")
         except ImportError:
 
+            os.chdir(__directory__)
             from lib import usb1
             logger.debug("Imported usb1 from lib")
 
